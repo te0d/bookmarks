@@ -3,25 +3,39 @@ require 'sinatra/base'
 require 'mongoid'
 
 class Bookmarks < Sinatra::Base
-	Mongoid.load!('mongo.yml')
+  Mongoid.load!('mongo.yml')
 
-	class Bookmark
-	  include Mongoid::Document
+  class Bookmark
+    include Mongoid::Document
 
-	  field :url, type: String
-	  field :title, type: String
-	  field :tags, type: Array
-	end
+    field :url, type: String
+    field :title, type: String
+    field :tags, type: Array
+  end
 
-	get '/' do
-	  @bookmarks = Bookmark.all
+  helpers do
+    def protected!
+      return if authorized?
+      headers['WWW-Authenticate'] = 'Basic realm="Restricted Area"'
+      halt 401, "Not authorized\n"
+    end
 
-	  erb :index
-	end
+    def authorized?
+      @auth ||= Rack::Auth::Basic::Request.new(request.env)
+      @auth.provided? and @auth.basic? and @auth.credentials and @auth.credentials == [ENV['CLOUD_USER'], ENV['CLOUD_PASS']]
+    end
+  end
+
+  get '/' do
+    @bookmarks = Bookmark.all
+
+    erb :index
+  end
 
   post '/new' do
-    bookmark = Bookmark.new
+    protected!
 
+    bookmark = Bookmark.new
     bookmark.url = params[:url]
     bookmark.title = params[:title]
     bookmark.tags = params[:tags].split
@@ -31,6 +45,8 @@ class Bookmarks < Sinatra::Base
   end
   
   get '/delete/:id' do |id|
+    protected!
+
     @bookmark = Bookmark.find(id)
     @bookmark.delete
 
