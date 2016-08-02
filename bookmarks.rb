@@ -10,7 +10,14 @@ class Bookmarks < Sinatra::Base
 
     field :url, type: String
     field :title, type: String
-    field :tags, type: Array
+    has_and_belongs_to_many :tags
+  end
+
+  class Tag
+    include Mongoid::Document
+
+    field :name, type: String
+    has_and_belongs_to_many :bookmarks
   end
 
   helpers do
@@ -28,6 +35,7 @@ class Bookmarks < Sinatra::Base
 
   get '/' do
     @bookmarks = Bookmark.all
+    @tags = Tag.all.sort_by { |t| t.name }
 
     erb :index
   end
@@ -38,9 +46,14 @@ class Bookmarks < Sinatra::Base
     bookmark = Bookmark.new
     bookmark.url = params[:url]
     bookmark.title = params[:title]
-    bookmark.tags = params[:tags].split
-
     bookmark.save
+
+    tag_names = params[:tags].split
+    tag_names.each do |name|
+      tag = Tag.find_or_create_by(name: name)
+      bookmark.tags.push(tag)
+    end
+
     redirect '/'
   end
   
@@ -51,5 +64,12 @@ class Bookmarks < Sinatra::Base
     @bookmark.delete
 
     redirect '/'
+  end
+
+  get "/tags/:name" do |name|
+    @bookmarks = Tag.find_by(name: name).bookmarks
+    @tags = Tag.all.sort_by { |t| t.name }
+
+    erb :index
   end
 end

@@ -5,7 +5,7 @@
     <% for bookmark in @bookmarks %>
       <tr>
         <td><a href="<%= bookmark.url %>"><%= bookmark.title %></a></td>
-        <td><%= bookmark.tags.join(', ') %></td>
+        <td><%= bookmark.tags.pluck(:name).join(', ') if bookmark.tags %></td>
         <td>
           <a class="btn btn-danger btn-xs" href="/delete/<%= bookmark._id %>">
             <span class="glyphicon glyphicon-trash"></span>
@@ -33,5 +33,12 @@
       </div>
       <button type="submit" class="btn btn-success">Add</button>
     </form>
+
+    <h2 class="text-right"> Tags</h2>
+    <ul class="list-group">
+    <% for tag in @tags %>
+      <li class="list-group-item"><a href="/tags/<%= tag.name %>"><%= tag.name %></a> <em><span class="pull-right">(<%= tag.bookmarks.length %>)</em></span></li>
+    <% end %>
+    </ul>
   </div>
 </div>
